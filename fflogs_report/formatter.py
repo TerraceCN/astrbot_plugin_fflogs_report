@@ -11,7 +11,7 @@ import base64
 import datetime
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 import jinja2
 
@@ -214,6 +214,41 @@ def format_html(
     template = env.get_template("report.html")
 
     displayed_zones = results.zone_rankings if include_empty else results.active_zones
+
+    # Split the displayed zones into active / frozen sections. Each section carries
+    # its own percentile stats (overall and high-difficulty-only) for the section bar.
+    zone_sections: List[Dict[str, Any]] = []
+    for key, title, frozen in (
+        ("active", "进行中的区域", False),
+        ("frozen", "已封存的区域", True),
+    ):
+        section_zones = [zr for zr in displayed_zones if zr.frozen is frozen]
+        if not section_zones:
+            continue
+        entries = [r for zr in section_zones for r in zr.rankings]
+        high_entries = [
+            r for zr in section_zones if zr.is_high_difficulty for r in zr.rankings
+        ]
+        zone_sections.append(
+            {
+                "key": key,
+                "title": title,
+                "zones": section_zones,
+                "best": max((r.percentile for r in entries), default=None),
+                "avg": (
+                    sum(r.percentile for r in entries) / len(entries)
+                    if entries
+                    else None
+                ),
+                "high_best": max((r.percentile for r in high_entries), default=None),
+                "high_avg": (
+                    sum(r.percentile for r in high_entries) / len(high_entries)
+                    if high_entries
+                    else None
+                ),
+            }
+        )
+
     generation_time = datetime.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")
     job_icon_css = build_job_icon_css(
         r.spec_name for zr in displayed_zones for r in zr.rankings
@@ -232,6 +267,7 @@ def format_html(
         include_empty=include_empty,
         base_site=base_site.rstrip("/"),
         displayed_zones=displayed_zones,
+        zone_sections=zone_sections,
         generation_time=generation_time,
         timeframe_display=timeframe_display,
         job_icon_css=job_icon_css,

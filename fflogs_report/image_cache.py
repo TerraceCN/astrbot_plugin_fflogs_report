@@ -34,13 +34,13 @@ class ImageCache:
     """TTL and size bounded on-disk cache for rendered report images.
 
     Attributes:
-        CACHE_VERSION: Bumped when the key layout changes. It participates in
-            every generated key so entries from an older layout are never
-            reused.
+        CACHE_VERSION: Bumped when the key layout or the rendered report output
+            changes. It participates in every generated key so entries from an
+            older layout/report are never reused.
         SUFFIXES: Image file suffixes kept when storing a rendered image.
     """
 
-    CACHE_VERSION = 1
+    CACHE_VERSION = 5
     SUFFIXES = (".jpg", ".jpeg", ".png")
 
     def __init__(

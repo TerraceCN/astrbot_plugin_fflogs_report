@@ -6,6 +6,12 @@ import datetime
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+# 高难度副本名称关键词（zones.json 提供中文名，未收录的新副本回退为英文名）。
+# 对应游戏内的“高难度副本”分类：极神 (Extreme)、幻巧 (Unreal)、零式 (Savage)、
+# 异闻 (Criterion) 与绝境 (Ultimate)。
+HIGH_DIFFICULTY_MARKERS = ("极神", "幻巧", "零式", "异闻", "绝境")
+HIGH_DIFFICULTY_MARKERS_EN = ("extreme", "unreal", "savage", "criterion", "ultimate")
+
 
 @dataclass
 class EncounterInfo:
@@ -163,6 +169,21 @@ class ZoneRanking:
     @property
     def has_rankings(self) -> bool:
         return len(self.rankings) > 0
+
+    @property
+    def is_high_difficulty(self) -> bool:
+        """Whether this zone belongs to the game's high-difficulty content.
+
+        FF Logs v1 reports the same difficulty id for savage raids, ultimates and
+        normal alliance raids, so the zone name is the only reliable discriminator.
+        High-difficulty content covered here: 极神 (Extreme), 幻巧 (Unreal),
+        零式 (Savage), 异闻 (Criterion) and 绝境 (Ultimate). English names are
+        matched as a fallback for zones missing from ``zones.json``.
+        """
+        name = (self.zone_name or "").lower()
+        return any(marker in name for marker in HIGH_DIFFICULTY_MARKERS) or any(
+            marker in name for marker in HIGH_DIFFICULTY_MARKERS_EN
+        )
 
     @property
     def best_percentile(self) -> Optional[float]:

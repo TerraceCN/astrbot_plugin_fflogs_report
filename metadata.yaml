@@ -2,6 +2,6 @@ name: astrbot_plugin_fflogs_report
 display_name: FF14 Logs 报告查询
 desc: 查询 FF14 指定角色的全副本 FF Logs 排名，并生成适合移动端阅读的图片报告
 short_desc: FF14 FF Logs 排名图片报告
-version: v1.1.0
+version: v1.2.0
 author: TerraceCN
 repo: https://github.com/TerraceCN/astrbot_plugin_fflogs_report
