@@ -1,0 +1,78 @@
+{
+  "api_key": {
+    "description": "FF Logs v1 API Key",
+    "type": "string",
+    "default": "",
+    "secret": true,
+    "obvious_hint": true,
+    "hint": "在 https://cn.fflogs.com/account 获取。留空时回退读取环境变量 FFLOGS_V1_APIKEY。"
+  },
+  "region": {
+    "description": "服务器所在区域",
+    "type": "string",
+    "default": "CN",
+    "options": ["CN", "US", "EU", "KR", "TW"]
+  },
+  "metric": {
+    "description": "统计指标",
+    "type": "string",
+    "default": "dps",
+    "options": ["dps", "hps", "bossdps", "tankhps", "playerspeed"]
+  },
+  "timeframe": {
+    "description": "统计时段",
+    "type": "string",
+    "default": "current",
+    "options": ["current", "history"],
+    "hint": "current: 当前榜单；history: 出分时的历史榜单。"
+  },
+  "base_url": {
+    "description": "FF Logs API 地址",
+    "type": "string",
+    "default": "https://cn.fflogs.com/v1",
+    "hint": "一般无需修改。"
+  },
+  "render_width": {
+    "description": "图片渲染视口宽度 (CSS px)",
+    "type": "int",
+    "default": 430,
+    "hint": "移动端建议 390-480。最终图片宽度 = 视口宽度 × 设备像素比。"
+  },
+  "render_scale": {
+    "description": "渲染清晰度 (设备像素比)",
+    "type": "string",
+    "default": "ultra",
+    "options": ["normal", "high", "ultra"],
+    "hint": "normal=1.0x，high=1.3x，ultra=1.8x。越高越清晰，图片也越大。"
+  },
+  "image_format": {
+    "description": "报告图片格式",
+    "type": "string",
+    "default": "jpeg",
+    "options": ["jpeg", "png"]
+  },
+  "image_quality": {
+    "description": "JPEG 图片质量",
+    "type": "int",
+    "default": 90,
+    "hint": "仅 image_format 为 jpeg 时生效，取值 1-100。"
+  },
+  "image_cache_ttl_minutes": {
+    "description": "报告图片缓存有效期 (分钟)",
+    "type": "int",
+    "default": 60,
+    "hint": "有效期内同一角色的重复查询直接返回缓存图片，不再请求 FF Logs。"
+  },
+  "image_cache_max_mb": {
+    "description": "报告图片缓存大小上限 (MB)",
+    "type": "int",
+    "default": 128,
+    "hint": "超出上限时自动删除最旧的缓存图片。"
+  },
+  "image_cache_cleanup_interval_minutes": {
+    "description": "缓存定时清理间隔 (分钟)",
+    "type": "int",
+    "default": 30,
+    "hint": "定期清理过期图片并检查大小上限。"
+  }
+}

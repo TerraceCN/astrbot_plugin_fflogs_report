@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FF Logs 排名报告 - {{ results.character_name }} @ {{ results.server_name }}</title>
+  <style>
+    :root {
+      --bg-base: #0b0f19;
+      --bg-surface: #121826;
+      --bg-card: #182234;
+      --bg-card-header: #141c2c;
+      --bg-row-hover: rgba(56, 189, 248, 0.05);
+      --bg-row-alt: rgba(255, 255, 255, 0.015);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.16);
+      
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      
+      --accent-cyan: #38bdf8;
+      --accent-indigo: #818cf8;
+      
+      /* FF Logs Tier Colors（仅文字色，用于百分位数字） */
+      --tier-gold-color: #ffd700;
+      --tier-pink-color: #e268a8;
+      --tier-orange-color: #ff8000;
+      --tier-purple-color: #a335ee;
+      --tier-blue-color: #0070dd;
+      --tier-green-color: #22c55e;
+      --tier-gray-color: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      background-image: 
+        radial-gradient(1200px circle at 50% -100px, rgba(99, 102, 241, 0.15), transparent 70%),
+        radial-gradient(800px circle at 100% 20%, rgba(56, 189, 248, 0.08), transparent 50%);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+    }
+
+    /* Hero / Profile Card */
+    .hero-card {
+      background: rgba(24, 34, 52, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: 0 12px 36px -10px rgba(0, 0, 0, 0.5);
+      margin-bottom: 24px;
+    }
+
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    .character-profile {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .character-avatar {
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(99, 102, 241, 0.3) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-cyan);
+      box-shadow: 0 4px 16px rgba(56, 189, 248, 0.2);
+    }
+
+    .character-info h1 {
+      font-size: 1.85rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .badge-server {
+      background: rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .badge-metric {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .badge-timeframe {
+      background: rgba(168, 85, 247, 0.15);
+      color: #d8b4fe;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 18px 20px;
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-strong);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .stat-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 1.65rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-sub {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .stat-pct {
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Jobs Row */
+    .jobs-section {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .jobs-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .jobs-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* Toolbar: Search & Quick-Jump */
+    .toolbar {
+      background: rgba(24, 34, 52, 0.6);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 18px 24px;
+      margin-bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .toolbar-row {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .search-wrapper {
+      position: relative;
+      flex: 1;
+      max-width: 480px;
+      min-width: 260px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 10px 14px 10px 40px;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+    }
+
+    .search-count {
+      font-size: 0.82rem;
+      color: var(--accent-cyan);
+      margin-left: 12px;
+      font-weight: 500;
+    }
+
+    /* Zone Nav Pills */
+    .zone-jump-nav {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .zone-jump-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .zone-nav-pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.78rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .zone-nav-pill:hover {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.35);
+      color: var(--accent-cyan);
+      transform: translateY(-1px);
+    }
+
+    /* Zone Card */
+    .zone-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      margin-bottom: 32px;
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+      scroll-margin-top: 24px;
+    }
+
+    .zone-header {
+      background: var(--bg-card-header);
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .zone-title-group {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .zone-id-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #94a3b8;
+    }
+
+    .zone-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .status-active {
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .status-frozen {
+      background: rgba(148, 163, 184, 0.15);
+      color: #94a3b8;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: currentColor;
+    }
+
+    .zone-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .zone-meta-sep {
+      color: var(--border-strong);
+    }
+
+    /* Table */
+    .table-responsive {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .rankings-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .rankings-table th {
+      padding: 13px 18px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: rgba(15, 23, 42, 0.4);
+      border-bottom: 1px solid var(--border-subtle);
+      white-space: nowrap;
+    }
+
+    .rankings-table td {
+      padding: 14px 18px;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .rankings-table tr:nth-child(even) {
+      background: var(--bg-row-alt);
+    }
+
+    .rankings-table tr:hover {
+      background: var(--bg-row-hover);
+    }
+
+    .rankings-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Cell Styles */
+    .encounter-cell {
+      font-weight: 600;
+      color: #ffffff;
+      min-width: 160px;
+    }
+
+    .job-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+      font-size: 0.82rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .job-icon {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      margin-right: 6px;
+      vertical-align: -4px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+
+    /* 职责配色：坦克蓝 / 治疗绿 / 输出红（色相取自游戏内职责图标的深色面板） */
+    .job-badge-tank {
+      background: #2b3a6d;
+      border-color: #4c5fa8;
+      color: #b4c2ff;
+    }
+
+    .job-badge-healer {
+      background: #2f4a24;
+      border-color: #4d7139;
+      color: #b7e299;
+    }
+
+    .job-badge-dps {
+      background: #4a2727;
+      border-color: #7d4242;
+      color: #ffb0b0;
+    }
+
+    /* Percentile Value：只保留带颜色的数字，无徽章外框 */
+    .pct-value {
+      font-size: 0.92rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.01em;
+    }
+
+    /* Tier colors */
+    .tier-gold { color: var(--tier-gold-color); }
+    .tier-pink { color: var(--tier-pink-color); }
+    .tier-orange { color: var(--tier-orange-color); }
+    .tier-purple { color: var(--tier-purple-color); }
+    .tier-blue { color: var(--tier-blue-color); }
+    .tier-green { color: var(--tier-green-color); }
+    .tier-gray { color: var(--tier-gray-color); }
+
+    .rank-cell {
+      font-variant-numeric: tabular-nums;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+    }
+
+    .rank-val {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .metric-cell {
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .duration-cell {
+      font-variant-numeric: tabular-nums;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+    }
+
+    .time-cell {
+      font-variant-numeric: tabular-nums;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    .report-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--accent-indigo);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      text-decoration: none;
+      font-size: 0.78rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .report-link:hover {
+      background: #6366f1;
+      color: #ffffff;
+      border-color: #6366f1;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    }
+
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .text-muted { color: var(--text-muted); }
+
+    /* Empty state notices */
+    .empty-zone-box {
+      padding: 36px 20px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .global-empty-state {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      padding: 60px 24px;
+      text-align: center;
+      margin-top: 24px;
+    }
+
+    .empty-icon {
+      margin-bottom: 16px;
+      color: var(--text-muted);
+    }
+
+    .global-empty-state h3 {
+      font-size: 1.25rem;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .global-empty-state p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* Footer */
+    .page-footer {
+      text-align: center;
+      margin-top: 60px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-size: 0.82rem;
+    }
+
+    .page-footer a {
+      color: var(--accent-cyan);
+      text-decoration: none;
+    }
+
+    .page-footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Back to Top Button */
+    .back-to-top {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(24, 34, 52, 0.9);
+      border: 1px solid var(--border-strong);
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.25s ease;
+      z-index: 100;
+    }
+
+    .back-to-top.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .back-to-top:hover {
+      background: var(--accent-cyan);
+      color: #0b0f19;
+      transform: translateY(-2px);
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: #ffffff;
+        color: #000000;
+      }
+      .hero-card, .toolbar, .zone-card {
+        background: #ffffff;
+        border: 1px solid #cccccc;
+        box-shadow: none;
+      }
+      .toolbar, .back-to-top {
+        display: none !important;
+      }
+      .rankings-table th, .rankings-table td {
+        color: #000000;
+        border-color: #dddddd;
+      }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 16px 12px 60px;
+      }
+      .hero-card {
+        padding: 20px;
+      }
+      .character-info h1 {
+        font-size: 1.45rem;
+      }
+      .zone-header {
+        padding: 16px;
+      }
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* Simple 模式：为移动端截图优化，保证表格不横向滚动。
+       表格使用固定布局，仅「首领」列弹性伸缩（超长名称省略号截断），
+       其余列宽度按内容固定并完整显示，所有单元格均不换行。 */
+    .simple-mode .container {
+      max-width: 100%;
+      padding: 10px 8px 32px;
+    }
+
+    .simple-mode .hero-card {
+      padding: 18px 14px;
+      border-radius: 14px;
+      margin-bottom: 14px;
+    }
+
+    .simple-mode .character-avatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+    }
+
+    .simple-mode .character-info h1 {
+      font-size: 1.4rem;
+    }
+
+    .simple-mode .stats-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .simple-mode .stat-card {
+      padding: 12px;
+      border-radius: 10px;
+    }
+
+    .simple-mode .stat-label {
+      font-size: 0.66rem;
+      letter-spacing: 0.03em;
+      margin-bottom: 4px;
+    }
+
+    .simple-mode .stat-value {
+      font-size: 1.25rem;
+      gap: 6px;
+    }
+
+    .simple-mode .stat-sub {
+      font-size: 0.8rem;
+    }
+
+    .simple-mode .jobs-section {
+      gap: 8px;
+      padding-top: 12px;
+    }
+
+    .simple-mode .jobs-label {
+      font-size: 0.78rem;
+    }
+
+    .simple-mode .zone-card {
+      border-radius: 12px;
+      margin-bottom: 14px;
+    }
+
+    .simple-mode .zone-header {
+      padding: 10px;
+      gap: 6px;
+    }
+
+    .simple-mode .zone-title {
+      font-size: 1rem;
+    }
+
+    .simple-mode .zone-meta {
+      font-size: 0.7rem;
+      gap: 6px;
+    }
+
+    .simple-mode .table-responsive {
+      overflow-x: hidden;
+    }
+
+    .simple-mode .rankings-table {
+      /* 表格铺满卡片宽度（表头背景完整覆盖），时间列的右侧留白通过列内边距实现 */
+      width: 100%;
+      table-layout: fixed;
+    }
+
+    .simple-mode .rankings-table th,
+    .simple-mode .rankings-table td {
+      padding: 7px 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .simple-mode .rankings-table th {
+      font-size: 0.58rem;
+      letter-spacing: 0.02em;
+    }
+
+    .simple-mode .rankings-table th:nth-child(1),
+    .simple-mode .rankings-table td:nth-child(1) {
+      width: auto;
+      padding-left: 9px;
+    }
+
+    .simple-mode .rankings-table th:nth-child(2),
+    .simple-mode .rankings-table td:nth-child(2) {
+      width: 72px;
+    }
+
+    .simple-mode .rankings-table th:nth-child(3),
+    .simple-mode .rankings-table td:nth-child(3) {
+      width: 38px;
+    }
+
+    .simple-mode .rankings-table th:nth-child(4),
+    .simple-mode .rankings-table td:nth-child(4) {
+      width: 66px;
+    }
+
+    .simple-mode .rankings-table th:nth-child(5),
+    .simple-mode .rankings-table td:nth-child(5) {
+      width: 98px;
+      padding-left: 14px;
+      padding-right: 14px;
+    }
+
+    .simple-mode .encounter-cell {
+      min-width: 0;
+      font-size: 0.7rem;
+    }
+
+    .simple-mode .job-badge {
+      padding: 2px 4px;
+      font-size: 0.6rem;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      vertical-align: middle;
+    }
+
+    .simple-mode .job-icon {
+      width: 12px;
+      height: 12px;
+      margin-right: 3px;
+      vertical-align: -2px;
+    }
+
+    .simple-mode .pct-value {
+      font-size: 0.7rem;
+    }
+
+    .simple-mode .metric-cell {
+      font-size: 0.7rem;
+    }
+
+
+    .simple-mode .time-cell {
+      font-size: 0.7rem;
+    }
+
+    @media (max-width: 430px) {
+      .simple-mode .container {
+        padding: 8px 6px 28px;
+      }
+      .simple-mode .rankings-table th,
+      .simple-mode .rankings-table td {
+        padding: 6px 2px;
+      }
+      .simple-mode .rankings-table th {
+        font-size: 0.52rem;
+      }
+      .simple-mode .rankings-table th:nth-child(2),
+      .simple-mode .rankings-table td:nth-child(2) {
+        width: 64px;
+      }
+      .simple-mode .rankings-table th:nth-child(3),
+      .simple-mode .rankings-table td:nth-child(3) {
+        width: 30px;
+      }
+      .simple-mode .rankings-table th:nth-child(4),
+      .simple-mode .rankings-table td:nth-child(4) {
+        width: 62px;
+      }
+      .simple-mode .rankings-table th:nth-child(5),
+      .simple-mode .rankings-table td:nth-child(5) {
+        width: 92px;
+        padding-left: 10px;
+        padding-right: 12px;
+      }
+      .simple-mode .encounter-cell { font-size: 0.7rem; }
+      .simple-mode .job-badge { padding: 2px 3px; font-size: 0.58rem; }
+      .simple-mode .job-icon { width: 11px; height: 11px; margin-right: 2px; }
+      .simple-mode .pct-value { font-size: 0.7rem; }
+      .simple-mode .metric-cell { font-size: 0.7rem; }
+      .simple-mode .time-cell { font-size: 0.7rem; }
+    }
+
+    /* Job icons actually used in this report, embedded as data URIs (one rule per job) */
+{{ job_icon_css | safe }}
+  </style>
+</head>
+<body{% if simple %} class="simple-mode"{% endif %}>
+  <div class="container">
+    <!-- Hero / Profile Card -->
+    <header class="hero-card">
+      <div class="hero-top">
+        <div class="character-profile">
+          <div class="character-avatar">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <div class="character-info">
+            <h1>{{ results.character_name }}</h1>
+            <div class="hero-badges">
+              <span class="badge badge-server">{{ results.server_name }} ({{ results.server_region }})</span>
+              <span class="badge badge-metric">{{ results.metric.upper() }}</span>
+              <span class="badge badge-timeframe">{{ timeframe_display }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">活跃副本 / 查询副本</div>
+          <div class="stat-value">
+            {{ results.total_active_zones }} <span class="stat-sub">/ {{ results.total_zones_queried }}</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">总击杀 / 排名记录</div>
+          <div class="stat-value">
+            {{ results.total_rankings }}
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">历史最高百分位</div>
+          <div class="stat-value">
+            {% if results.overall_best_percentile is not none %}
+              {% set best_t = results.overall_best_percentile | percentile_tier %}
+              <span class="stat-pct tier-{{ best_t }}" title="精确值: {{ '%.2f' | format(results.overall_best_percentile) }}%">{{ results.overall_best_percentile | round_pct }}</span>
+            {% else %}
+              <span class="text-muted">N/A</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">综合平均百分位</div>
+          <div class="stat-value">
+            {% if results.overall_avg_percentile is not none %}
+              {% set avg_t = results.overall_avg_percentile | percentile_tier %}
+              <span class="stat-pct tier-{{ avg_t }}" title="精确值: {{ '%.2f' | format(results.overall_avg_percentile) }}%">{{ results.overall_avg_percentile | round_pct }}</span>
+            {% else %}
+              <span class="text-muted">N/A</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Jobs Row -->
+      {% if results.jobs_played %}
+      <div class="jobs-section">
+        <span class="jobs-label">出战职业:</span>
+        <div class="jobs-list">
+          {% for job in results.jobs_played %}
+            {% set job_slug = job | job_slug %}
+            {% set job_role = job | job_role %}
+            <span class="job-badge{% if job_role %} job-badge-{{ job_role }}{% endif %}">{% if job_slug %}<span class="job-icon job-icon-{{ job_slug }}" aria-hidden="true"></span>{% endif %}{{ job }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </header>
+
+    {% if not simple %}
+    <!-- Toolbar: Search & Quick-Jump -->
+    <section class="toolbar">
+      <div class="toolbar-row">
+        <div class="search-wrapper">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="searchInput" class="search-input" placeholder="快速搜索首领名称、职业或副本..." autocomplete="off">
+        </div>
+        <span id="searchCount" class="search-count"></span>
+      </div>
+
+      <!-- Quick Jump Nav -->
+      {% if displayed_zones %}
+      <div class="zone-jump-nav">
+        <span class="zone-jump-label">快速跳转:</span>
+        {% for zr in displayed_zones %}
+          {% if zr.has_rankings %}
+            <a href="#zone-{{ zr.zone_id }}" class="zone-nav-pill">Zone {{ zr.zone_id }} · {{ zr.zone_name }}</a>
+          {% endif %}
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    <!-- Zone Cards -->
+    {% if displayed_zones %}
+      {% for zr in displayed_zones %}
+      <article class="zone-card" id="zone-{{ zr.zone_id }}" data-zone-id="{{ zr.zone_id }}">
+        <div class="zone-header">
+          <div class="zone-title-group">
+            <span class="zone-id-badge">Zone {{ zr.zone_id }}</span>
+            <h2 class="zone-title">{{ zr.zone_name }}</h2>
+            {% if zr.frozen %}
+              <span class="status-badge status-frozen"><span class="status-dot"></span>已封存</span>
+            {% else %}
+              <span class="status-badge status-active"><span class="status-dot"></span>进行中</span>
+            {% endif %}
+          </div>
+
+          <div class="zone-meta">
+            {% if zr.has_rankings %}
+              {% set z_best_t = zr.best_percentile | percentile_tier %}
+              {% set z_avg_t = zr.avg_percentile | percentile_tier %}
+              <span>最高: <strong class="tier-{{ z_best_t }}">{{ "%.1f" | format(zr.best_percentile) }}%</strong></span>
+              <span class="zone-meta-sep">•</span>
+              <span>平均: <strong class="tier-{{ z_avg_t }}">{{ "%.1f" | format(zr.avg_percentile) }}%</strong></span>
+              <span class="zone-meta-sep">•</span>
+              <span>{{ zr.rankings | length }} 条记录</span>
+            {% else %}
+              <span class="text-muted">暂无有效记录</span>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if zr.has_rankings %}
+        <div class="table-responsive">
+          <table class="rankings-table">
+            <thead>
+              <tr>
+                <th>{% if simple %}首领{% else %}首领 / 副本{% endif %}</th>
+                <th>职业</th>
+                <th class="text-center">百分位</th>
+                {% if not simple %}<th>排名 / 样本</th>{% endif %}
+                <th class="text-right">{% if simple %}数值{% else %}数值 ({{ results.metric.upper() }}){% endif %}</th>
+                {% if not simple %}<th class="text-center">战斗时长</th>{% endif %}
+                <th>{% if simple %}时间{% else %}记录时间{% endif %}</th>
+                {% if not simple %}<th class="text-center">战报</th>{% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in zr.rankings %}
+                {% set r_tier = r.percentile | percentile_tier %}
+                {% set job_slug = r.spec_name | job_slug %}
+                {% set job_role = r.spec_name | job_role %}
+                <tr class="ranking-row"{% if not simple %} data-search="{{ r.encounter_name | lower }} {{ r.spec_name | lower }} {{ zr.zone_name | lower }}"{% endif %}>
+                  <td class="encounter-cell">{{ r.encounter_name }}</td>
+                  <td><span class="job-badge{% if job_role %} job-badge-{{ job_role }}{% endif %}">{% if job_slug %}<span class="job-icon job-icon-{{ job_slug }}" aria-hidden="true"></span>{% endif %}{{ r.spec_name }}</span></td>
+                  <td class="text-center">
+                    <span class="pct-value tier-{{ r_tier }}" title="精确百分位: {{ '%.2f' | format(r.percentile) }}%">{{ r.percentile | round_pct }}</span>
+                  </td>
+                  {% if not simple %}
+                  <td class="rank-cell">
+                    <span class="rank-val">{{ r.rank | format_int }}</span> / {{ r.out_of | format_int }}
+                  </td>
+                  {% endif %}
+                  <td class="text-right metric-cell">{{ r.total | format_metric }}</td>
+                  {% if not simple %}
+                  <td class="text-center duration-cell">{{ r.duration_str }}</td>
+                  {% endif %}
+                  <td class="time-cell">{% if simple %}{{ r.start_date_str }}{% else %}{{ r.start_time_str }}{% endif %}</td>
+                  {% if not simple %}
+                  <td class="text-center">
+                    {% if r.report_id %}
+                      <a href="{{ r.report_url(base_site) }}" target="_blank" rel="noopener noreferrer" class="report-link" title="在 FF Logs 打开战报">
+                        <span>战报</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                          <polyline points="15 3 21 3 21 9"></polyline>
+                          <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                      </a>
+                    {% else %}
+                      <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                  {% endif %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-zone-box">
+          暂无该副本的排名记录
+        </div>
+        {% endif %}
+      </article>
+      {% endfor %}
+    {% else %}
+      <div class="global-empty-state">
+        <div class="empty-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </div>
+        <h3>未查询到排名记录</h3>
+        <p>该角色在所查询的副本中暂无已上传或公开的有效战斗记录。</p>
+      </div>
+    {% endif %}
+
+    <!-- Footer -->
+    <footer class="page-footer">
+      <p>由 <strong>FF Logs Report</strong> 生成 · 数据来源 <a href="{{ base_site }}" target="_blank" rel="noopener noreferrer">FF Logs</a> · 生成时间: {{ generation_time }}</p>
+    </footer>
+  </div>
+
+  {% if not simple %}
+  <!-- Back to Top Button -->
+  <button id="backToTop" class="back-to-top" title="返回顶部" aria-label="返回顶部">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 15l-6-6-6 6"/>
+    </svg>
+  </button>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const searchInput = document.getElementById('searchInput');
+      const searchCount = document.getElementById('searchCount');
+      const allZones = document.querySelectorAll('.zone-card');
+      const backToTop = document.getElementById('backToTop');
+
+      // Search filter
+      if (searchInput) {
+        searchInput.addEventListener('input', function() {
+          const q = this.value.trim().toLowerCase();
+          let matchedCount = 0;
+
+          allZones.forEach(function(zone) {
+            let zoneMatched = 0;
+            const rows = zone.querySelectorAll('.ranking-row');
+            rows.forEach(function(row) {
+              const text = row.getAttribute('data-search') || '';
+              if (!q || text.includes(q)) {
+                row.style.display = '';
+                matchedCount++;
+                zoneMatched++;
+              } else {
+                row.style.display = 'none';
+              }
+            });
+
+            if (rows.length > 0) {
+              zone.style.display = (!q || zoneMatched > 0) ? '' : 'none';
+            }
+          });
+
+          if (q) {
+            searchCount.textContent = '找到 ' + matchedCount + ' 条记录';
+          } else {
+            searchCount.textContent = '';
+          }
+        });
+      }
+
+      // Back to top
+      window.addEventListener('scroll', function() {
+        if (window.scrollY > 300) {
+          backToTop.classList.add('visible');
+        } else {
+          backToTop.classList.remove('visible');
+        }
+      });
+
+      backToTop.addEventListener('click', function() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+  </script>
+  {% endif %}
+</body>
+</html>
